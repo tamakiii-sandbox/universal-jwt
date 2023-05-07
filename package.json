@@ -1,5 +1,5 @@
 {
-  "name": "universal-jwt",
+  "name": "jwt-generator",
   "version": "0.0.1",
   "description": "",
   "main": "main.js",
