@@ -1,7 +1,10 @@
-import fs from "fs";
-import jwt from "jsonwebtoken";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+#!/usr/bin/env node
+
+'use strict';
+
+import fs from 'fs';
+import jwt from 'jsonwebtoken';
+import { Command } from 'commander';
 
 interface JWTResult {
   token: string;
@@ -15,36 +18,8 @@ interface JWTPayload {
   iss: number;
 }
 
-const argv = yargs(hideBin(process.argv))
-  .usage("Usage: $0 <command> [options]")
-  .command("generate", "Generate JWT token")
-  .example(
-    "$0 generate -p private.pem -a 12345",
-    "Generate JWT token with given PEM file and app_id"
-  )
-  .alias("p", "pem")
-  .nargs("p", 1)
-  .describe("p", "Path to PEM file")
-  .alias("a", "app_id")
-  .nargs("a", 1)
-  .describe("a", "Application ID")
-  .alias("A", "algorithm")
-  .default("A", "RS256")
-  .describe("A", "JWT signing algorithm (default: RS256)")
-  .alias("e", "expire")
-  .default("e", 600)
-  .describe("e", "Expiration time in seconds (default: 600)")
-  .demandOption(["p", "a"])
-  .help("h")
-  .alias("h", "help").argv;
-
-export function generateJWT(
-  pemPath: string,
-  appId: number,
-  algorithm: string,
-  expire: number
-): JWTResult {
-  const privateKey = fs.readFileSync(pemPath, "utf8");
+function generateJWT(pemPath: string, appId: number, algorithm: string, expire: number): JWTResult {
+  const privateKey = fs.readFileSync(pemPath, 'utf8');
   const now = Math.floor(Date.now() / 1000);
   const payload: JWTPayload = {
     iat: now,
@@ -56,17 +31,24 @@ export function generateJWT(
   return { token, algorithm, expire };
 }
 
-if (argv._[0] === "generate") {
-  try {
-    const result = generateJWT(
-      argv.pem,
-      argv.app_id,
-      argv.algorithm,
-      argv.expire
-    );
-    console.log(JSON.stringify(result));
-  } catch (error) {
-    console.error("Error:", error.message);
-    process.exit(1);
-  }
-}
+const program = new Command();
+program.version('1.0.0');
+
+program
+  .command('generate')
+  .description('Generate JWT token')
+  .option('-p, --pem <path>', 'Path to PEM file')
+  .option('-a, --app_id <number>', 'Application ID', parseInt)
+  .option('-A, --algorithm <algorithm>', 'JWT signing algorithm (default: RS256)', 'RS256')
+  .option('-e, --expire <seconds>', 'Expiration time in seconds (default: 600)', (v) => parseInt(v), 600)
+  .action((options) => {
+    try {
+      const result = generateJWT(options.pem, options.app_id, options.algorithm, options.expire);
+      console.log(JSON.stringify(result));
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+program.parse(process.argv);
